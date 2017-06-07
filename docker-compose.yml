@@ -1,0 +1,12 @@
+##docker-compose.yml
+version: '2'
+services: 
+  neo4j:
+    image: neo4j:3.2
+    environment:
+      - NEO4J_AUTH=neo4j/enigma
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./data/dbms:/data/dbms

@@ -109,3 +109,6 @@ ENV/
 !.vscode/extensions.json
 
 # End of https://www.gitignore.io/api/python,visualstudiocode
+
+data/
+logs/
