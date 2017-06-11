@@ -63,5 +63,5 @@ class SamurAI(Env):
         if self.viewer is None:
             screen_width = 800
             screen_height = 600
-            self.viewer = gui.Viewer((screen_width, screen_height))
+            self.viewer = renderer.Viewer((screen_width, screen_height))
             
