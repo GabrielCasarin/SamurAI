@@ -1,4 +1,16 @@
+import os
+import pygame
+import app.settings as settings
+from .sprites import *
 __all__ = ['Viewer']
+
+
+#image's path
+IMAGES_DIR = os.path.join(settings.BASE_DIR, "app", "client", "renderer", "images")
+IMG_NAMES = ["Blue-battleaxe", "Blue-sword", "Red-spear", "Blue-spear", "Red-battleaxe", "Red-sword"]
+IMG_NAMES_BUTTONS = ["Send", "occupy_down", "occupy_right", "occupy_up", "occupy_left", "move_down", "move_right", "move_up", "move_left", "Hide", "Erase", "Empty", "More", "Occupy", "Move"]
+IMG_NAMES_INFO = ["Green", "Hidden", "Red", "Blue", "Turno"]
+
 
 class Viewer:
     __instance = None
@@ -49,23 +61,27 @@ class Viewer:
             pygame.display.update()
 
         #definindo se o player é o Player 1 ou o Player 2
-        # Window.__instance.player = player
+        Window.__instance.player = player
         #definindo o tabuleiro
         Window.__instance.__board = Board(settings.size)
-        # Window.__instance.__board.draw(Window.__instance.__screen)
-        # #definindo o turno e seu display
-        # Window.__instance.__turn = Turno(Window.__instance.player)
-        # #definindo os 6 samurais
-        # Window.__instance.__samurais = [Samurai(i) for i in range(6)]
-        # #definindo as acoes
-        # Window.__instance.__acoes = [Acao(i) for i in range(11)]
+        #definindo o turno e seu display
+        Window.__instance.__turn = Turno()
+        #definindo os 6 samurais
+        Window.__instance.__samurais = [Samurai(i) for i in range(6)]
+        #definindo as acoes
+        Window.__instance.__acoes = [Acao(i) for i in range(11)]
         #definindo a lista de ordens
         Window.__instance.__orderList = OrderList(IMAGES, IMAGES_BUTTONS)
-        # #definindo o botão que escolhe o samurai
-        # Window.__instance.__buttonSamurai = ButtonSamurai()
+        #definindo o botão que escolhe o samurai
+        Window.__instance.__buttonSamurai = ButtonSamurai()
         return Window.__instance
-    
+
+    def render(self, mensagem):
+        screen = Viewer.__instance.__screen
+        Window.__instance.__board.draw(screen)
+        pass
+
     @staticmethod
-    def quit():
+    def close():
         pygame.quit()
         Window.__instance = None
