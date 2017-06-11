@@ -14,13 +14,13 @@ IMG_NAMES_INFO = ["Green", "Hidden", "Red", "Blue", "Turno"]
 
 class Viewer:
     __instance = None
-    def __new__(cls, player):
-        if not Window.__instance:
-            Window.__instance = super().__new__(cls)
+    def __new__(cls):
+        if not Viewer.__instance:
+            Viewer.__instance = super().__new__(cls)
             pygame.init()
             #definindo a surface
-            Window.__instance.__screen = pygame.display.set_mode((800,600))
-            Window.__instance.myfont = pygame.font.SysFont("arial", 15)
+            Viewer.__instance.__screen = pygame.display.set_mode((800,600))
+            Viewer.__instance.myfont = pygame.font.SysFont("arial", 15)
             #carrega as imagens
             try:
                 IMAGES = {
@@ -53,35 +53,54 @@ class Viewer:
                     pygame.quit()
                     raise e
                 else:
-                    Window.__instance.__screen.blit(bg, bg.get_rect())
+                    Viewer.__instance.__screen.blit(bg, bg.get_rect())
                     pygame.display.update()
                     pygame.time.delay(2000)
 
-            Window.__instance.__screen.fill([220,220,220])
+            Viewer.__instance.__screen.fill([220,220,220])
             pygame.display.update()
 
-        #definindo se o player é o Player 1 ou o Player 2
-        Window.__instance.player = player
         #definindo o tabuleiro
-        Window.__instance.__board = Board(settings.size)
+        Viewer.__instance.__board = Board(settings.size)
+        Viewer.__instance.__board.update(Viewer.__instance.__screen)
         #definindo o turno e seu display
-        Window.__instance.__turn = Turno()
+        Viewer.__instance.__turn = Turno(IMAGES_INFO, Viewer.__instance.myfont)
         #definindo os 6 samurais
-        Window.__instance.__samurais = [Samurai(i) for i in range(6)]
+        Viewer.__instance.__samurais = [Samurai(i, IMAGES, IMAGES_BUTTONS, IMAGES_INFO, Viewer.__instance.myfont) for i in range(6)]
         #definindo as acoes
-        Window.__instance.__acoes = [Acao(i) for i in range(11)]
+        Viewer.__instance.__acoes = [Acao(i, IMAGES_BUTTONS) for i in range(11)]
+        for acao in Viewer.__instance.__acoes:
+            acao.update(Viewer.__instance.__screen)
         #definindo a lista de ordens
-        Window.__instance.__orderList = OrderList(IMAGES, IMAGES_BUTTONS)
+        Viewer.__instance.__orderList = OrderList(IMAGES, IMAGES_BUTTONS)
+        Viewer.__instance.__orderList.update(Viewer.__instance.__screen)
         #definindo o botão que escolhe o samurai
-        Window.__instance.__buttonSamurai = ButtonSamurai()
-        return Window.__instance
+        Viewer.__instance.__buttonSamurai = ButtonSamurai(IMAGES, IMAGES_BUTTONS, IMAGES_INFO)
+        pygame.display.update()
+        return Viewer.__instance
 
-    def render(self, mensagem):
-        screen = Viewer.__instance.__screen
-        Window.__instance.__board.draw(screen)
-        pass
+    def render(self, message):
+        #atualizando o turno atual
+        self.__turn.setTurn(message['turn'])
+
+        #atualizando a lista de acoes
+        self.__orderList.clear()
+        self.__orderList.setSamurai(str(self.__buttonSamurai.num))
+
+        #atualizando o tabuleiro
+        self.__board.update(self.__screen, message['board'])
+
+        #atualizando os samurais e colocando eles no tabuleiro
+        for samurai in self.__samurais:
+            x, y, order_status, hidden, treatment = message['samurais'][samurai.num]
+            samurai.update(self.__screen, self.__board, x, y, order_status, hidden, treatment)
+
+        #atualizando o botao que escolhe o samurai com indicador se ele pode jogar
+        samurai = self.__samurais[self.__buttonSamurai.num]
+        self.__buttonSamurai.update(self.__screen, samurai)
+        pygame.display.update()
 
     @staticmethod
     def close():
         pygame.quit()
-        Window.__instance = None
+        Viewer.__instance = None

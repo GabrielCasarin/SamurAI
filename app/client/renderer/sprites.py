@@ -4,28 +4,34 @@ import app.settings as settings
 
 class Board:
     cores = {
-        "0": [0, 0, 255],
-        "1": [80, 180, 255],
-        "2": [80, 255, 255],
-        "3": [200, 0, 0],
-        "4": [255, 120, 80],
-        "5": [255, 0, 80],
-        "8": [200, 200, 200],
-        "9": [20, 20, 20]
+        0: [0, 0, 255],
+        1: [80, 180, 255],
+        2: [80, 255, 255],
+        3: [200, 0, 0],
+        4: [255, 120, 80],
+        5: [255, 0, 80],
+        8: [200, 200, 200],
+        9: [20, 20, 20]
     }
 
-    def __init__(self, n):
+    def __init__(self, size):
         super(Board, self).__init__()
+        self.size = size
         delta_x = 20
         delta_y = 20
         self.casas = {
             (i, j): {
                 "rect": pygame.Rect(30*i + delta_x, 30*j + delta_y, 30, 30),
                 "cor": (255,255,255),
-            } for i in range(n) for j in range(n)
+            } for i in range(size) for j in range(size)
         }
 
-    def draw(self, surface):
+    def update(self, surface, board=None):
+        if board:
+            for j in range(self.size):
+                for i in range(self.size):
+                    self.casas[(i, j)]["cor"] = self.cores[board[j][i]]
+
         for casa in self.casas.values():
             pygame.draw.rect(surface, casa["cor"], casa["rect"])
             pygame.draw.rect(surface, (0,0,0), casa["rect"].copy(), 1)
@@ -72,22 +78,18 @@ class OrderList(pygame.sprite.Sprite):
 
     def setSamurai(self,num):
         self.order[0] = num #str = '0', '1', ou '2'
-        self.draw()
 
     def appendO(self,newOrder):
         self.order.append(newOrder)
-        self.draw()
 
     def popO(self):
         if len(self.order) > 1:
             self.order.pop()
-            self.draw()
 
     def clear(self):
         self.order = self.order[:1]
-        self.draw(False)
 
-    def draw(self, screen, update=True):
+    def update(self, screen):
 
         order = self.order
         #limpando
@@ -116,19 +118,16 @@ class OrderList(pygame.sprite.Sprite):
                 xRect = xImg.get_rect(center=self.centers[5])
                 screen.blit(xImg,xRect)
 
-        if update:
-            #print(self)
-            pygame.display.update()
-
 
 class Samurai(pygame.sprite.Sprite):
-    def __init__(self, num, images, images_buttons, images_info):
+    def __init__(self, num, images, images_buttons, images_info, font):
         super(Samurai, self).__init__()
 
         self.num = num
         self.IMAGES = images
         self.IMAGES_BUTTONS = images_buttons
         self.IMAGES_INFO = images_info
+        self.font = font
 
         if num == 0:
             self.img_name = "Blue-spear"
@@ -203,7 +202,7 @@ class Samurai(pygame.sprite.Sprite):
         whiteBg = pygame.Rect(centerStat[0] + 80,centerStat[1] - 19, 30, 20)
         pygame.draw.rect(surface, (255, 255, 255), whiteBg)
 
-        texto = myfont.render('{:>2}'.format(str(self.treatment)), 1, (0,0,0))
+        texto = self.font.render('{:>2}'.format(str(self.treatment)), 1, (0,0,0))
         surface.blit(texto, (centerStat[0] + 80, centerStat[1] - 19))
 
         #status: verde = pode jogar, azul = ja jogou, vermelho = machucado (vermelho tem preferencia em azul)
@@ -225,9 +224,10 @@ class Samurai(pygame.sprite.Sprite):
 
 
 class Turno(pygame.sprite.Sprite):
-    def __init__(self, images_info):
+    def __init__(self, images_info, font):
         super(Turno, self).__init__()
         self.IMAGES_INFO = images_info
+        self.font = font
         self.turn = 0
 
         self.center = [550,40]
@@ -248,19 +248,19 @@ class Turno(pygame.sprite.Sprite):
     def setTurn(self, turno):
         self.turn = turno
 
-    def minhaVez(self, player):
+    def _minha_vez(self, player):
         return not (self.turn%2 + player%2 + self.partida%2)%2
 
     def final(self):
         return self.turn == settings.MAX_TURN - 1
 
-    def update(self, surface):
+    def update(self, surface, player):
         surface.blit(self.IMAGES_INFO[self.boxImg],self.boxRect)
 
-        texto = myfont.render('{:>2}'.format(str(self.turn)), 1, (0,0,0))
+        texto = self.font.render('{:>2}'.format(str(self.turn)), 1, (0,0,0))
         surface.blit(texto, (self.center[0]+20,self.center[1]-15))
 
-        if self.minhaVez():
+        if self._minha_vez(player):
             surface.blit(self.IMAGES_INFO[self.enableImg],self.enabRect)
         else:
             surface.blit(self.IMAGES_INFO[self.disableImg],self.enabRect)
@@ -271,36 +271,36 @@ class Acao(pygame.sprite.Sprite):
         super(Acao, self).__init__()
         self.IMAGES_BUTTONS = images_buttons
 
-        cmx = 550   #centerMoveX
-        cmy = 200   #centerMoveY
+        self.cmx = 550   #centerMoveX
+        self.cmy = 200   #centerMoveY
 
-        cox = 670   #centerOcuppyX
-        coy = 140   #centerOcuppyY
+        self.cox = 670   #centerOcuppyX
+        self.coy = 140   #centerOcuppyY
 
-        dPad = 43  #distancia do center do Pad
+        self.dPad = 43  #distancia do center do Pad
 
         if num == 0:
-            self.imgName, self.center = "Send"         , (450,        500      )
+            self.imgName, self.center = "Send"         , (450, 500)
         elif num == 1:
-            self.imgName, self.center = "occupy_down"  , (cox,        coy+dPad)
+            self.imgName, self.center = "occupy_down"  , (self.cox,        self.coy + self.dPad)
         elif num == 2:
-            self.imgName, self.center = "occupy_right" , (cox+dPad,  coy      )
+            self.imgName, self.center = "occupy_right" , (self.cox + self.dPad,  self.coy      )
         elif num == 3:
-            self.imgName, self.center = "occupy_up"    , (cox,        coy-dPad)
+            self.imgName, self.center = "occupy_up"    , (self.cox,        self.coy - self.dPad)
         elif num == 4:
-            self.imgName, self.center = "occupy_left"  , (cox-dPad,  coy      )
+            self.imgName, self.center = "occupy_left"  , (self.cox - self.dPad,  self.coy      )
         elif num == 5:
-            self.imgName, self.center = "move_down"    , (cmx,        cmy+dPad)
+            self.imgName, self.center = "move_down"    , (self.cmx,        self.cmy + self.dPad)
         elif num == 6:
-            self.imgName, self.center = "move_right"   , (cmx+dPad,  cmy      )
+            self.imgName, self.center = "move_right"   , (self.cmx + self.dPad,  self.cmy      )
         elif num == 7:
-            self.imgName, self.center = "move_up"      , (cmx,        cmy-dPad)
+            self.imgName, self.center = "move_up"      , (self.cmx,        self.cmy - self.dPad)
         elif num == 8:
-            self.imgName, self.center = "move_left"    , (cmx-dPad,  cmy      )
+            self.imgName, self.center = "move_left"    , (self.cmx - self.dPad,  self.cmy      )
         elif num == 9:
-            self.imgName, self.center = "Hide"         , (670,        240      )
+            self.imgName, self.center = "Hide"         , (670, 240)
         elif num == 10:
-            self.imgName, self.center = "Erase"        , (400,        500      )
+            self.imgName, self.center = "Erase"        , (400, 500)
 
     def update(self, surface):
         self.img = self.IMAGES_BUTTONS[self.imgName]
@@ -309,10 +309,10 @@ class Acao(pygame.sprite.Sprite):
 
         #textos:
         occImg = self.IMAGES_BUTTONS['Occupy']
-        occRect = occImg.get_rect(center=(cox,coy))
+        occRect = occImg.get_rect(center=(self.cox, self.coy))
         surface.blit(occImg, occRect)
         movImg = self.IMAGES_BUTTONS['Move']
-        movRect = movImg.get_rect(center=(cmx,cmy))
+        movRect = movImg.get_rect(center=(self.cmx, self.cmy))
         surface.blit(movImg, movRect)
 
 
@@ -341,11 +341,11 @@ class ButtonSamurai(pygame.sprite.Sprite):
 
         #samurai
         if self.num == 0:
-            surface.blit(self.IMAGES[self.img0],self.samRect)
+            surface.blit(self.IMAGES[self.img0], self.samRect)
         elif self.num == 1:
-            surface.blit(self.IMAGES[self.img1],self.samRect)
+            surface.blit(self.IMAGES[self.img1], self.samRect)
         elif self.num == 2:
-            surface.blit(self.IMAGES[self.img2],self.samRect)
+            surface.blit(self.IMAGES[self.img2], self.samRect)
 
         #info
         infoCenter = [self.center[0]-11,self.center[1]+11]
